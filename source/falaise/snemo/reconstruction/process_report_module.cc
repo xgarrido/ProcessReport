@@ -194,7 +194,7 @@ namespace snemo {
         } else if (_print_report_ & PRINT_AS_TABLE) {
           const size_t name_width = 25;
           const size_t nbr_width  = 8;
-          if (i == a_cut_dict.begin()) {
+          if (hline.str().empty()) {
             std::ostringstream oss;
             oss << the_cut.get_number_of_processed_entries();
             column_width = oss.str().size();
