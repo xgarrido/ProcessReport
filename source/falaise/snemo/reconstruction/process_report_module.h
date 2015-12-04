@@ -52,6 +52,14 @@ namespace snemo {
     {
     public:
 
+      /// Report format type
+      enum report_format_type {
+        PRINT_NONE     = 0,
+        PRINT_AS_TREE  = datatools::bit_mask::bit00,
+        PRINT_AS_TABLE = datatools::bit_mask::bit01,
+        PRINT_IN_FILE  = datatools::bit_mask::bit02
+      };
+
       /// Setting geometry manager
       void set_geometry_manager(const geomtools::manager & mgr_);
 
@@ -84,10 +92,17 @@ namespace snemo {
       /// Give default values to specific class members.
       void _set_defaults();
 
+    protected:
+
+      /// Method to print report from cut manager
+      void _print_cut_report(std::ostream & out_ = std::clog) const;
+
     private:
 
       const geomtools::manager * _geometry_manager_; //!< The geometry manager
       const cuts::cut_manager * _cut_manager_;       //!< The cut manager
+
+      uint32_t _print_report_;          //!< Print report format
 
       // Macro to automate the registration of the module :
       DPP_MODULE_REGISTRATION_INTERFACE(process_report_module);
