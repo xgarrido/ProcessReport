@@ -1,4 +1,4 @@
-/// \file snemo/reconstruction/process_report_module.h
+/// \file snemo/processing/process_report_module.h
 /* Author(s)     : Xavier Garrido <garrido@lal.in2p3.fr>
  * Creation date : 2015-12-04
  * Last modified : 2015-12-04
@@ -29,12 +29,12 @@
  *
  */
 
-#ifndef FALAISE_CHARGEDPARTICLETRACKING_PLUGIN_RECONSTRUCTION_PROCESS_REPORT_MODULE_H
-#define FALAISE_CHARGEDPARTICLETRACKING_PLUGIN_RECONSTRUCTION_PROCESS_REPORT_MODULE_H 1
+#ifndef FALAISE_PROCESSREPORT_PLUGIN_PROCESSING_PROCESS_REPORT_MODULE_H
+#define FALAISE_PROCESSREPORT_PLUGIN_PROCESSING_PROCESS_REPORT_MODULE_H 1
 
 // Third party:
 // - Bayeux/dpp:
-#include <dpp/base_module.h>
+#include <bayeux/dpp/base_module.h>
 
 namespace geomtools {
   class manager;
@@ -45,32 +45,21 @@ namespace cuts {
 
 namespace snemo {
 
-  namespace reconstruction {
+  namespace processing {
+
+    // Forward declaration
+    class cut_report_driver;
 
     /// \brief A process report module
     class process_report_module : public dpp::base_module
     {
     public:
 
-      /// Report format type
-      enum report_format_type {
-        PRINT_NONE     = 0,
-        PRINT_AS_TREE  = datatools::bit_mask::bit00,
-        PRINT_AS_TABLE = datatools::bit_mask::bit01,
-        PRINT_IN_FILE  = datatools::bit_mask::bit02
-      };
-
       /// Setting geometry manager
       void set_geometry_manager(const geomtools::manager & mgr_);
 
       /// Getting geometry manager
       const geomtools::manager & get_geometry_manager() const;
-
-      /// Setting cut manager
-      void set_cut_manager(const cuts::cut_manager & mgr_);
-
-      /// Getting cut manager
-      const cuts::cut_manager & get_cut_manager() const;
 
       /// Constructor
       process_report_module(datatools::logger::priority = datatools::logger::PRIO_FATAL);
@@ -89,38 +78,35 @@ namespace snemo {
       /// Data record processing
       virtual process_status process(datatools::things & data_);
 
-      /// Give default values to specific class members.
-      void _set_defaults();
-
     protected:
 
-      /// Method to print report from cut manager
-      void _print_cut_report(std::ostream & out_ = std::clog) const;
+      /// Give default values to specific class members.
+      void _set_defaults();
 
     private:
 
       const geomtools::manager * _geometry_manager_; //!< The geometry manager
-      const cuts::cut_manager * _cut_manager_;       //!< The cut manager
 
-      uint32_t _print_report_;          //!< Print report format
+      /// Cut Report Driver :
+      boost::scoped_ptr<snemo::processing::cut_report_driver> _CRD_;
 
       // Macro to automate the registration of the module :
       DPP_MODULE_REGISTRATION_INTERFACE(process_report_module);
 
     };
 
-  } // namespace reconstruction
+  } // namespace processing
 
 } // namespace snemo
 
 #include <datatools/ocd_macros.h>
 
 // Declare the OCD interface of the module
-DOCD_CLASS_DECLARATION(snemo::reconstruction::process_report_module)
+DOCD_CLASS_DECLARATION(snemo::processing::process_report_module)
 
-#endif // FALAISE_CHARGEDPARTICLETRACKING_PLUGIN_RECONSTRUCTION_PROCESS_REPORT_MODULE_H
+#endif // FALAISE_PROCESSREPORT_PLUGIN_PROCESSING_PROCESS_REPORT_MODULE_H
 
-// end of snemo/reconstruction/process_report_module.h
+// end of snemo/processing/process_report_module.h
 /*
 ** Local Variables: --
 ** mode: c++ --
