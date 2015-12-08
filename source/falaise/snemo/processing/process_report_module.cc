@@ -20,6 +20,7 @@
 // This project (Falaise):
 #include <falaise/snemo/processing/services.h>
 #include <falaise/snemo/processing/cut_report_driver.h>
+#include <falaise/snemo/processing/geometry_report_driver.h>
 
 namespace snemo {
 
@@ -29,23 +30,10 @@ namespace snemo {
     DPP_MODULE_REGISTRATION_IMPLEMENT(process_report_module,
                                       "snemo::processing::process_report_module");
 
-    const geomtools::manager & process_report_module::get_geometry_manager() const
-    {
-      return *_geometry_manager_;
-    }
-
-    void process_report_module::set_geometry_manager(const geomtools::manager & mgr_)
-    {
-      DT_THROW_IF(is_initialized(), std::logic_error,
-                  "Module '" << get_name() << "' is already initialized ! ");
-      _geometry_manager_ = &mgr_;
-      return;
-    }
-
     void process_report_module::_set_defaults()
     {
-      _geometry_manager_  = 0;
       _CRD_.reset();
+      _GRD_.reset();
       return;
     }
 
@@ -64,17 +52,15 @@ namespace snemo {
         geometry_label = setup_.fetch_string("Geo_label");
       }
       // Geometry manager :
-      if (_geometry_manager_ == 0) {
-        DT_THROW_IF(geometry_label.empty(), std::logic_error,
-                    "Module '" << get_name() << "' has no valid '" << "Geo_label" << "' property !");
-        DT_THROW_IF(! service_manager_.has(geometry_label) ||
-                    ! service_manager_.is_a<geomtools::geometry_service>(geometry_label),
-                    std::logic_error,
-                    "Module '" << get_name() << "' has no '" << geometry_label << "' service !");
-        const geomtools::geometry_service & Geo
-          = service_manager_.get<geomtools::geometry_service>(geometry_label);
-        set_geometry_manager(Geo.get_geom_manager());
-      }
+      DT_THROW_IF(geometry_label.empty(), std::logic_error,
+                  "Module '" << get_name() << "' has no valid '" << "Geo_label" << "' property !");
+      DT_THROW_IF(! service_manager_.has(geometry_label) ||
+                  ! service_manager_.is_a<geomtools::geometry_service>(geometry_label),
+                  std::logic_error,
+                  "Module '" << get_name() << "' has no '" << geometry_label << "' service !");
+      const geomtools::geometry_service & Geo
+        = service_manager_.get<geomtools::geometry_service>(geometry_label);
+      const geomtools::manager & the_geometry_manager = Geo.get_geom_manager();
 
       std::string cut_label = snemo::processing::service_info::default_cut_service_label();
       if (setup_.has_key("Cut_label")) {
@@ -105,6 +91,13 @@ namespace snemo {
           datatools::properties CRD_config;
           setup_.export_and_rename_starting_with(CRD_config, a_driver_name + ".", "");
           _CRD_->initialize(CRD_config);
+        } else if (a_driver_name == snemo::processing::geometry_report_driver::get_id()) {
+          // Initialize Geometry Report Driver
+          _GRD_.reset(new snemo::processing::geometry_report_driver);
+          _GRD_->set_geometry_manager(the_geometry_manager);
+          datatools::properties GRD_config;
+          setup_.export_and_rename_starting_with(GRD_config, a_driver_name + ".", "");
+          _GRD_->initialize(GRD_config);
         } else {
           DT_THROW_IF(true, std::logic_error, "Driver '" << a_driver_name << "' does not exist !");
         }

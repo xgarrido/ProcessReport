@@ -24,12 +24,14 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/source/falaise)
 list(APPEND FalaiseProcessReportPlugin_HEADERS
   source/falaise/snemo/processing/process_report_module.h
   source/falaise/snemo/processing/cut_report_driver.h
+  source/falaise/snemo/processing/geometry_report_driver.h
   )
 
 # - Sources:
 list(APPEND FalaiseProcessReportPlugin_SOURCES
   source/falaise/snemo/processing/process_report_module.cc
   source/falaise/snemo/processing/cut_report_driver.cc
+  source/falaise/snemo/processing/geometry_report_driver.cc
   )
 
 ############################################################################################

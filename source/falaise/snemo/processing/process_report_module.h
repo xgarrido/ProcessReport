@@ -36,30 +36,18 @@
 // - Bayeux/dpp:
 #include <bayeux/dpp/base_module.h>
 
-namespace geomtools {
-  class manager;
-}
-namespace cuts {
-  class cut_manager;
-}
-
 namespace snemo {
 
   namespace processing {
 
     // Forward declaration
     class cut_report_driver;
+    class geometry_report_driver;
 
     /// \brief A process report module
     class process_report_module : public dpp::base_module
     {
     public:
-
-      /// Setting geometry manager
-      void set_geometry_manager(const geomtools::manager & mgr_);
-
-      /// Getting geometry manager
-      const geomtools::manager & get_geometry_manager() const;
 
       /// Constructor
       process_report_module(datatools::logger::priority = datatools::logger::PRIO_FATAL);
@@ -85,10 +73,11 @@ namespace snemo {
 
     private:
 
-      const geomtools::manager * _geometry_manager_; //!< The geometry manager
-
       /// Cut Report Driver :
       boost::scoped_ptr<snemo::processing::cut_report_driver> _CRD_;
+
+      /// Geometry Report Driver :
+      boost::scoped_ptr<snemo::processing::geometry_report_driver> _GRD_;
 
       // Macro to automate the registration of the module :
       DPP_MODULE_REGISTRATION_INTERFACE(process_report_module);
