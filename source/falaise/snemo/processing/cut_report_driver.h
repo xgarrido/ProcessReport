@@ -35,6 +35,8 @@
 // - Bayeux/datatools
 #include <bayeux/datatools/logger.h>
 #include <bayeux/datatools/bit_mask.h>
+// - Bayeux/cuts
+#include <bayeux/cuts/cut_tools.h>
 
 namespace datatools {
   class properties;
@@ -52,14 +54,6 @@ namespace snemo {
     class cut_report_driver
     {
     public:
-
-      /// Report format type
-      enum report_format_type {
-        PRINT_NONE     = 0,
-        PRINT_AS_TREE  = datatools::bit_mask::bit00,
-        PRINT_AS_TABLE = datatools::bit_mask::bit01,
-        PRINT_IN_FILE  = datatools::bit_mask::bit02
-      };
 
       /// Return driver id
       static const std::string & get_id();
@@ -97,8 +91,8 @@ namespace snemo {
       /// Reset the driver
       void reset();
 
-      /// Main driver method
-      void process();
+      /// Main report method
+      void report(std::ostream & out_) const;
 
       /// OCD support:
       static void init_ocd(datatools::object_configuration_description & ocd_);
@@ -108,17 +102,15 @@ namespace snemo {
       /// Set default values to class members:
       void _set_defaults();
 
-    private:
-
-      /// Measure particle charge:
-      void _print_cut_report_() const;
+      ///
+      void _report(std::ostream & out_) const;
 
     private:
 
       bool _initialized_;                             //<! Initialize flag
       datatools::logger::priority _logging_priority_; //<! Logging flag
       const cuts::cut_manager * _cut_manager_;        //!< The cut manager
-      uint32_t _print_report_;                        //!< Print report format
+      cuts::ordered_cut_list_type _ordered_cuts_;     //!< Ordered list of cuts
     };
 
   }  // end of namespace processing

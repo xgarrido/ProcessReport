@@ -34,6 +34,7 @@ namespace snemo {
     {
       _CRD_.reset();
       _GRD_.reset();
+      _out_ = 0;
       return;
     }
 
@@ -47,34 +48,24 @@ namespace snemo {
 
       dpp::base_module::_common_initialize(setup_);
 
-      std::string geometry_label = snemo::processing::service_info::default_geometry_service_label();
-      if (setup_.has_key("Geo_label")) {
-        geometry_label = setup_.fetch_string("Geo_label");
+      DT_THROW_IF(! setup_.has_key("output"), std::logic_error,
+                  "Missing 'output' key in module '" << get_name() <<  "'!");
+      const std::string output_str = setup_.fetch_string("output");
+      if (output_str == "clog") {
+        _out_ = &std::clog;
+      } else if (output_str == "cout") {
+        _out_ = &std::cout;
+      } else if (output_str == "file") {
+        DT_THROW_IF(! setup_.has_key("output.filename"),
+                    std::logic_error,
+                    "Missing 'output.filename' property in module '"
+                    << get_name () << "' ! ");
+        const std::string _output_filename_ = setup_.fetch_string("output.filename");
+      } else {
+        DT_THROW_IF(true, std::logic_error,
+                    "Invalid output label '" << output_str << " for module '" << get_name () << "' !");
       }
-      // Geometry manager :
-      DT_THROW_IF(geometry_label.empty(), std::logic_error,
-                  "Module '" << get_name() << "' has no valid '" << "Geo_label" << "' property !");
-      DT_THROW_IF(! service_manager_.has(geometry_label) ||
-                  ! service_manager_.is_a<geomtools::geometry_service>(geometry_label),
-                  std::logic_error,
-                  "Module '" << get_name() << "' has no '" << geometry_label << "' service !");
-      const geomtools::geometry_service & Geo
-        = service_manager_.get<geomtools::geometry_service>(geometry_label);
-      const geomtools::manager & the_geometry_manager = Geo.get_geom_manager();
-
-      std::string cut_label = snemo::processing::service_info::default_cut_service_label();
-      if (setup_.has_key("Cut_label")) {
-        cut_label = setup_.fetch_string("Cut_label");
-      }
-      // Cut manager :
-      DT_THROW_IF(cut_label.empty(), std::logic_error,
-                  "Module '" << get_name() << "' has no valid '" << "Cut_label" << "' property !");
-      DT_THROW_IF(! service_manager_.has(cut_label) ||
-                  ! service_manager_.is_a<cuts::cut_service>(cut_label),
-                  std::logic_error,
-                  "Module '" << get_name() << "' has no '" << cut_label << "' service !");
-      const cuts::cut_service & Cut = service_manager_.get<cuts::cut_service>(cut_label);
-      const cuts::cut_manager & the_cut_manager = Cut.get_cut_manager();
+      DT_THROW_IF(_out_ == 0, std::logic_error, "Module '" << get_name() << "' has not output stream !");
 
       // Drivers :
       DT_THROW_IF(! setup_.has_key("drivers"), std::logic_error, "Missing 'drivers' key !");
@@ -87,14 +78,45 @@ namespace snemo {
         if (a_driver_name == snemo::processing::cut_report_driver::get_id()) {
           // Initialize Cut Report Driver
           _CRD_.reset(new snemo::processing::cut_report_driver);
-          _CRD_->set_cut_manager(the_cut_manager);
+          {
+            std::string cut_label = snemo::processing::service_info::default_cut_service_label();
+            if (setup_.has_key("Cut_label")) {
+              cut_label = setup_.fetch_string("Cut_label");
+            }
+            // Cut manager :
+            DT_THROW_IF(cut_label.empty(), std::logic_error,
+                        "Module '" << get_name() << "' has no valid '" << "Cut_label" << "' property !");
+            DT_THROW_IF(! service_manager_.has(cut_label) ||
+                        ! service_manager_.is_a<cuts::cut_service>(cut_label),
+                        std::logic_error,
+                        "Module '" << get_name() << "' has no '" << cut_label << "' service !");
+            const cuts::cut_service & Cut = service_manager_.get<cuts::cut_service>(cut_label);
+            const cuts::cut_manager & the_cut_manager = Cut.get_cut_manager();
+            _CRD_->set_cut_manager(the_cut_manager);
+          }
           datatools::properties CRD_config;
           setup_.export_and_rename_starting_with(CRD_config, a_driver_name + ".", "");
           _CRD_->initialize(CRD_config);
         } else if (a_driver_name == snemo::processing::geometry_report_driver::get_id()) {
           // Initialize Geometry Report Driver
           _GRD_.reset(new snemo::processing::geometry_report_driver);
-          _GRD_->set_geometry_manager(the_geometry_manager);
+          {
+            std::string geometry_label = snemo::processing::service_info::default_geometry_service_label();
+            if (setup_.has_key("Geo_label")) {
+              geometry_label = setup_.fetch_string("Geo_label");
+            }
+            // Geometry manager :
+            DT_THROW_IF(geometry_label.empty(), std::logic_error,
+                        "Module '" << get_name() << "' has no valid '" << "Geo_label" << "' property !");
+            DT_THROW_IF(! service_manager_.has(geometry_label) ||
+                        ! service_manager_.is_a<geomtools::geometry_service>(geometry_label),
+                        std::logic_error,
+                        "Module '" << get_name() << "' has no '" << geometry_label << "' service !");
+            const geomtools::geometry_service & Geo
+              = service_manager_.get<geomtools::geometry_service>(geometry_label);
+            const geomtools::manager & the_geometry_manager = Geo.get_geom_manager();
+            _GRD_->set_geometry_manager(the_geometry_manager);
+          }
           datatools::properties GRD_config;
           setup_.export_and_rename_starting_with(GRD_config, a_driver_name + ".", "");
           _GRD_->initialize(GRD_config);
@@ -113,6 +135,8 @@ namespace snemo {
       DT_THROW_IF(! is_initialized(),
                   std::logic_error,
                   "Module '" << get_name() << "' is not initialized !");
+
+      if (_CRD_) _CRD_->report(*_out_);
 
       _set_initialized(false);
       _set_defaults();
