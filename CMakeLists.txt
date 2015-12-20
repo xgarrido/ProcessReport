@@ -7,6 +7,9 @@ project(FalaiseProcessReportPlugin)
 # Modules use Falaise, so we need to locate this or fail
 # find_package(Falaise REQUIRED)
 
+# Use C++11
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 # Ensure our code can see the Falaise headers
 #include_directories(${Falaise_INCLUDE_DIRS})
 include_directories(${Falaise_BUILDPRODUCT_DIR}/include)
