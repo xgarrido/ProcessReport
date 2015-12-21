@@ -96,8 +96,20 @@ namespace snemo {
                   "Invalid logging priority level for geometry manager !");
       set_logging_priority(lp);
 
-      if (setup_.has_key("ordered_cuts")) {
-        setup_.fetch("ordered_cuts", _ordered_cuts_);
+      if (setup_.has_key("print_report")) {
+        const std::string value = setup_.fetch_string("print_report");
+        if (value == "tree") {
+          _print_report_ = PRINT_AS_TREE;
+        } else if (value == "table") {
+          _print_report_ = PRINT_AS_TABLE;
+        } else if (value == "meter") {
+          _print_report_ = PRINT_AS_METER;
+        }
+      }
+      if (_print_report_ == PRINT_NONE) _print_report_ = PRINT_AS_METER;
+
+      if (setup_.has_key("cuts")) {
+        setup_.fetch("cuts", _cut_list_);
       }
 
       set_initialized(true);
@@ -118,6 +130,8 @@ namespace snemo {
       _initialized_      = false;
       _logging_priority_ = datatools::logger::PRIO_WARNING;
       _cut_manager_      = 0;
+      _print_report_     = PRINT_NONE;
+      _cut_list_.clear();
       return;
     }
 
@@ -127,76 +141,110 @@ namespace snemo {
     //   return;
     // }
 
-    void cut_report_driver::report(std::ostream & out_) const
+    void cut_report_driver::report(std::ostream & out_)
     {
       DT_THROW_IF(! has_cut_manager(), std::logic_error, "Missing cut manager !");
       this->_report(out_);
       return;
     }
 
-    void cut_report_driver::_report(std::ostream & out_) const
+    void cut_report_driver::_report(std::ostream & out_)
     {
       const cuts::cut_manager & a_manager = get_cut_manager();
-
-      auto print_cut = [] (const cuts::i_cut & cut_)
-        {
-        };
-
-      const cuts::cut_handle_dict_type & a_cut_dict = a_manager.get_cuts();
-
-      size_t column_width = 0;
-      std::ostringstream hline;
-
-      for (cuts::cut_handle_dict_type::const_iterator i = a_cut_dict.begin();
-           i != a_cut_dict.end(); i++) {
-        const std::string & the_cut_name = i->first;
-        const cuts::cut_entry_type & the_cut_entry = i->second;
-        if (! the_cut_entry.has_cut()) continue;
-        const cuts::i_cut & the_cut = the_cut_entry.get_cut();
-        // Specific variable for table mode
-        const size_t name_width = 25;
-        const size_t nbr_width  = 8;
-        if (hline.str().empty()) {
-          std::ostringstream oss;
-          oss << the_cut.get_number_of_processed_entries();
-          column_width = oss.str().size();
-          // Header line
-          hline << "+" << std::setfill('-') << std::setw(name_width + 6)
-                << "+" << std::setfill('-') << std::setw(column_width + 3)
-                << "+" << std::setfill('-') << std::setw(column_width + 3)
-                << "+" << std::setfill('-') << std::setw(nbr_width + 4)
-                << "+" << std::setfill('-') << std::setw(column_width + 3)
-                << "+" << std::setfill('-') << std::setw(nbr_width + 4)
-                << "+" << std::endl;
-          out_ << hline.str();
-          out_ << "| " << "Cut name" << std::setw(name_width - 2)
-               << "| " << std::setw(column_width + 3)
-               << "| " << "Accepted" << std::setw(column_width + nbr_width - 1)
-               << "| " << "Rejected" << std::setw(column_width + nbr_width - 2)
-               << "|" << std::endl;
-          out_ << hline.str();
+      if (_cut_list_.empty()) {
+        const cuts::cut_handle_dict_type & a_cut_dict = a_manager.get_cuts();
+        for (cuts::cut_handle_dict_type::const_iterator i = a_cut_dict.begin();
+             i != a_cut_dict.end(); i++) {
+          const std::string & a_cut_name = i->first;
+          const cuts::cut_entry_type & a_cut_entry = i->second;
+          if (! a_cut_entry.has_cut()) continue;
+          _cut_list_.push_back(a_cut_name);
         }
-        out_.setf(std::ios::internal);
-        if (the_cut_name.size() > name_width) {
-          out_ << "| " << the_cut_name.substr(0, name_width) << "... | ";
-        } else {
-          out_ << "| " << the_cut_name << std::setfill(' ')
-               << std::setw(name_width - the_cut_name.size() + 6) << " | ";
+      }
+
+      for (cut_list_type::const_iterator icut = _cut_list_.begin();
+           icut != _cut_list_.end(); ++icut) {
+        const std::string & a_cut_name = *icut;
+        if (! a_manager.has(a_cut_name)) {
+          DT_LOG_WARNING(get_logging_priority(), "No cut with name '" << a_cut_name << "' !");
+          continue;
         }
+        const cuts::i_cut & the_cut = a_manager.get(a_cut_name);
+
+        // Cut statistics
         const size_t nae = the_cut.get_number_of_accepted_entries();
         const size_t nre = the_cut.get_number_of_rejected_entries();
         const size_t npe = the_cut.get_number_of_processed_entries();
-        out_.setf(std::ios::fixed);
-        out_ << std::setw(column_width) << npe << " | "
-             << std::setw(column_width) << nae << " | "
-             << std::setw(nbr_width) << std::setprecision(2) << (npe > 0 ? 100.0 * nae/npe : 0) << "% | "
-             << std::setw(column_width) << nre << " | "
-             << std::setw(nbr_width) << std::setprecision(2) << (npe > 0 ? 100.0 * nre/npe : 0) << "% | "
-             << std::endl;
-        if (std::next(i) == a_cut_dict.end()) {
-          out_ << hline.str() << std::endl;
+
+        if (_print_report_ == PRINT_AS_TREE) {
+          the_cut.tree_dump(out_, "Cut '" + a_cut_name + "'", "[notice]: ");
         }
-      } // end of cut dictionary
+        if (_print_report_ == PRINT_AS_METER) {
+          auto meter = [] (const size_t percent_)
+            {
+              const size_t sz = 10;
+              std::string meter;
+              for (size_t i = 0; i < sz; i++) {
+                if (i < percent_/sz) meter += "█";
+                else                 meter += " ";
+              }
+              return meter;
+            };
+          static size_t digit = 0;
+          if (digit == 0) digit = std::ceil(log10(npe+1));
+          const size_t pae = (npe > 0 ? 100.0 * nae/npe : 0);
+          const size_t pre = (npe > 0 ? 100.0 * nre/npe : 0);
+          out_ << "[notice]: Cut '" << a_cut_name << "' statistics" << std::endl;
+          out_ << "[notice]:  ↳ " << std::setw(digit)  << npe << " processed entries : "
+               << meter(pae) << " " << std::setw(digit+6) << pae << "% (" << nae << ") "
+               << meter(pre) << " " << std::setw(digit+6) << pre << "% (" << nre << ")"
+               << std::endl;
+        }
+        if (_print_report_ == PRINT_AS_TABLE) {
+          // Specific variable for table mode
+          const size_t name_width = 25;
+          const size_t nbr_width  = 8;
+          static size_t column_width = 0;
+          static std::ostringstream hline;
+          if (hline.str().empty()) {
+            std::ostringstream oss;
+            oss << the_cut.get_number_of_processed_entries();
+            column_width = oss.str().size();
+            // Header line
+            hline << "+" << std::setfill('-') << std::setw(name_width + 6)
+                  << "+" << std::setfill('-') << std::setw(column_width + 3)
+                  << "+" << std::setfill('-') << std::setw(column_width + 3)
+                  << "+" << std::setfill('-') << std::setw(nbr_width + 4)
+                  << "+" << std::setfill('-') << std::setw(column_width + 3)
+                  << "+" << std::setfill('-') << std::setw(nbr_width + 4)
+                  << "+" << std::endl;
+            out_ << hline.str();
+            out_ << "| " << "Cut name" << std::setw(name_width - 2)
+                 << "| " << std::setw(column_width + 3)
+                 << "| " << "Accepted" << std::setw(column_width + nbr_width - 1)
+                 << "| " << "Rejected" << std::setw(column_width + nbr_width - 2)
+                 << "|" << std::endl;
+            out_ << hline.str();
+          }
+          out_.setf(std::ios::internal);
+          if (a_cut_name.size() > name_width) {
+            out_ << "| " << a_cut_name.substr(0, name_width) << "... | ";
+          } else {
+            out_ << "| " << a_cut_name << std::setfill(' ')
+                 << std::setw(name_width - a_cut_name.size() + 6) << " | ";
+          }
+          out_.setf(std::ios::fixed);
+          out_ << std::setw(column_width) << npe << " | "
+               << std::setw(column_width) << nae << " | "
+               << std::setw(nbr_width) << std::setprecision(2) << (npe > 0 ? 100.0 * nae/npe : 0) << "% | "
+               << std::setw(column_width) << nre << " | "
+               << std::setw(nbr_width) << std::setprecision(2) << (npe > 0 ? 100.0 * nre/npe : 0) << "% | "
+               << std::endl;
+          if (std::next(icut) == _cut_list_.end()) {
+            out_ << hline.str() << std::endl;
+          }
+        }
+      } // end of cut list
       return;
     }
 

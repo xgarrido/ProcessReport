@@ -34,9 +34,6 @@
 // Third party:
 // - Bayeux/datatools
 #include <bayeux/datatools/logger.h>
-#include <bayeux/datatools/bit_mask.h>
-// - Bayeux/cuts
-#include <bayeux/cuts/cut_tools.h>
 
 namespace datatools {
   class properties;
@@ -54,6 +51,17 @@ namespace snemo {
     class cut_report_driver
     {
     public:
+
+      /// Report format type
+      enum report_format_type {
+        PRINT_NONE,
+        PRINT_AS_TREE,
+        PRINT_AS_TABLE,
+        PRINT_AS_METER
+      };
+
+			/// Typedef for a list of cut name
+      typedef std::vector<std::string> cut_list_type;
 
       /// Return driver id
       static const std::string & get_id();
@@ -92,7 +100,7 @@ namespace snemo {
       void reset();
 
       /// Main report method
-      void report(std::ostream & out_) const;
+      void report(std::ostream & out_);
 
       /// OCD support:
       static void init_ocd(datatools::object_configuration_description & ocd_);
@@ -102,15 +110,16 @@ namespace snemo {
       /// Set default values to class members:
       void _set_defaults();
 
-      ///
-      void _report(std::ostream & out_) const;
+      /// Internal report method
+      void _report(std::ostream & out_);
 
     private:
 
       bool _initialized_;                             //<! Initialize flag
       datatools::logger::priority _logging_priority_; //<! Logging flag
       const cuts::cut_manager * _cut_manager_;        //!< The cut manager
-      cuts::ordered_cut_list_type _ordered_cuts_;     //!< Ordered list of cuts
+      cut_list_type _cut_list_;                       //!< List of cuts
+      report_format_type _print_report_;              //!< Print report format
     };
 
   }  // end of namespace processing
