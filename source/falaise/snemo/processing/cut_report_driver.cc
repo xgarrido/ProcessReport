@@ -6,6 +6,7 @@
 // Standard library:
 #include <sstream>
 #include <iomanip>
+#include <regex>
 
 // Third party:
 // - Bayeux/datatools:
@@ -140,6 +141,8 @@ namespace snemo {
       _cut_manager_      = 0;
       _print_report_     = PRINT_NONE;
       _cut_list_.clear();
+      _title_.clear();
+      _indent_.clear();
       return;
     }
 
@@ -152,6 +155,7 @@ namespace snemo {
     void cut_report_driver::report(std::ostream & out_)
     {
       DT_THROW_IF(! has_cut_manager(), std::logic_error, "Missing cut manager !");
+      if (! _title_.empty()) out_ << _title_ << std::endl;
       this->_report(out_);
       return;
     }
@@ -173,6 +177,19 @@ namespace snemo {
       for (cut_list_type::const_iterator icut = _cut_list_.begin();
            icut != _cut_list_.end(); ++icut) {
         const std::string & a_cut_name = *icut;
+
+        auto is_separator = [] (const std::string & name_)
+          {
+            return std::regex_match(name_, std::regex("^-.*"));
+          };
+
+        // Check new serie of cut
+        const bool start = icut == _cut_list_.begin() || is_separator(*std::prev(icut));
+
+        // Do not treat separator as cut
+        if (is_separator(a_cut_name)) continue;
+
+        // No cut registered -> continue
         if (! a_manager.has(a_cut_name)) {
           DT_LOG_WARNING(get_logging_priority(), "No cut with name '" << a_cut_name << "' !");
           continue;
@@ -191,23 +208,29 @@ namespace snemo {
           auto meter = [] (const size_t percent_)
             {
               const size_t sz = 10;
+              const size_t idx = (percent_ == 0 ? 0 : percent_/sz+1);
               std::string meter;
               for (size_t i = 0; i < sz; i++) {
-                if (i < percent_/sz) meter += "█";
-                else                 meter += " ";
+                if (i < idx) meter += "█";
+                else         meter += " ";
               }
               return meter;
             };
           static size_t digit = 0;
-          if (digit == 0) digit = std::ceil(log10(npe+1));
-          const size_t pae = (npe > 0 ? 100.0 * nae/npe : 0);
-          const size_t pre = (npe > 0 ? 100.0 * nre/npe : 0);
-          out_ << "[notice]: Cut '" << a_cut_name << "' statistics" << std::endl;
-          out_ << "[notice]:  ↳ " << std::setw(digit)  << npe << " processed entries : "
-               << meter(pae) << " " << std::setw(digit+6) << pae << "% (" << nae << ") "
-               << meter(pre) << " " << std::setw(digit+6) << pre << "% (" << nre << ")"
+          static size_t norm = 0;
+          if (start) {
+            digit = std::ceil(log10(npe+1));
+            norm = npe;
+            out_ << std::endl;
+          }
+          const double pae = (npe > 0 ? 100.0 * nae/norm : 0);
+          const double pre = (npe > 0 ? 100.0 * nre/norm : 0);
+          out_.setf(std::ios::fixed);
+          out_.precision(1);
           out_ << _indent_ << "Cut '" << a_cut_name << "' statistics" << std::endl;
           out_ << _indent_ << " ↳ " << std::setw(digit)  << npe << " processed entries : "
+               << meter(pae) << " " << std::setw(6) << pae << "% (" << std::right << std::setw(digit) << nae << ") "
+               << meter(pre) << " " << std::setw(6) << pre << "% (" << std::right << std::setw(digit) << nre << ") "
                << std::endl;
         }
         if (_print_report_ == PRINT_AS_TABLE) {
@@ -218,7 +241,7 @@ namespace snemo {
           static std::ostringstream hline;
           if (hline.str().empty()) {
             std::ostringstream oss;
-            oss << the_cut.get_number_of_processed_entries();
+            oss << npe;
             column_width = oss.str().size();
             // Header line
             hline << "+" << std::setfill('-') << std::setw(name_width + 6)
@@ -234,8 +257,8 @@ namespace snemo {
                  << "| " << "Accepted" << std::setw(column_width + nbr_width - 1)
                  << "| " << "Rejected" << std::setw(column_width + nbr_width - 2)
                  << "|" << std::endl;
-            out_ << hline.str();
           }
+          if (start) out_ << hline.str();
           out_.setf(std::ios::internal);
           if (a_cut_name.size() > name_width) {
             out_ << "| " << a_cut_name.substr(0, name_width) << "... | ";
