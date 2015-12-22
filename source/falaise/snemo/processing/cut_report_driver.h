@@ -115,11 +115,13 @@ namespace snemo {
 
     private:
 
-      bool _initialized_;                             //<! Initialize flag
-      datatools::logger::priority _logging_priority_; //<! Logging flag
+      bool _initialized_;                             //!< Initialize flag
+      datatools::logger::priority _logging_priority_; //!< Logging flag
+      std::string _title_;                            //!< Title string
+      std::string _indent_;                           //!< Indent string
+      report_format_type _print_report_;              //!< Print report format
       const cuts::cut_manager * _cut_manager_;        //!< The cut manager
       cut_list_type _cut_list_;                       //!< List of cuts
-      report_format_type _print_report_;              //!< Print report format
     };
 
   }  // end of namespace processing
