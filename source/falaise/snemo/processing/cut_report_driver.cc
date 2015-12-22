@@ -96,6 +96,14 @@ namespace snemo {
                   "Invalid logging priority level for geometry manager !");
       set_logging_priority(lp);
 
+      if (setup_.has_key("title")) {
+        _title_ = setup_.fetch_string("title");
+      }
+
+      if (setup_.has_key("indent")) {
+        _indent_ = setup_.fetch_string("indent");
+      }
+
       if (setup_.has_key("print_report")) {
         const std::string value = setup_.fetch_string("print_report");
         if (value == "tree") {
@@ -177,7 +185,7 @@ namespace snemo {
         const size_t npe = the_cut.get_number_of_processed_entries();
 
         if (_print_report_ == PRINT_AS_TREE) {
-          the_cut.tree_dump(out_, "Cut '" + a_cut_name + "'", "[notice]: ");
+          the_cut.tree_dump(out_, "Cut '" + a_cut_name + "'", _indent_);
         }
         if (_print_report_ == PRINT_AS_METER) {
           auto meter = [] (const size_t percent_)
@@ -198,6 +206,8 @@ namespace snemo {
           out_ << "[notice]:  ↳ " << std::setw(digit)  << npe << " processed entries : "
                << meter(pae) << " " << std::setw(digit+6) << pae << "% (" << nae << ") "
                << meter(pre) << " " << std::setw(digit+6) << pre << "% (" << nre << ")"
+          out_ << _indent_ << "Cut '" << a_cut_name << "' statistics" << std::endl;
+          out_ << _indent_ << " ↳ " << std::setw(digit)  << npe << " processed entries : "
                << std::endl;
         }
         if (_print_report_ == PRINT_AS_TABLE) {
