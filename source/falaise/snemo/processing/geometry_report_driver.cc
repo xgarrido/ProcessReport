@@ -146,7 +146,7 @@ namespace snemo {
     void geometry_report_driver::_print_geometry_report_() const
     {
       DT_THROW_IF(! has_geometry_manager(), std::logic_error, "Missing cut manager !");
-      const geomtools::manager & a_manager = get_geometry_manager();
+      // const geomtools::manager & a_manager = get_geometry_manager();
       return;
     }
 

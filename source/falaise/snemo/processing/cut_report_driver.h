@@ -31,6 +31,9 @@
 #ifndef FALAISE_PROCESSREPORT_PLUGIN_PROCESSING_CUT_REPORT_DRIVER_H
 #define FALAISE_PROCESSREPORT_PLUGIN_PROCESSING_CUT_REPORT_DRIVER_H 1
 
+// Standard library
+#include <vector>
+
 // Third party:
 // - Bayeux/datatools
 #include <bayeux/datatools/logger.h>
