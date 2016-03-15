@@ -209,12 +209,12 @@ namespace snemo {
             {
               const size_t sz = 10;
               const size_t idx = (percent_ == 0 ? 0 : percent_/sz+1);
-              std::string meter;
+              std::string a_meter;
               for (size_t i = 0; i < sz; i++) {
-                if (i < idx) meter += "█";
-                else         meter += " ";
+                if (i < idx) a_meter += "█";
+                else         a_meter += " ";
               }
-              return meter;
+              return a_meter;
             };
           static size_t digit = 0;
           static size_t norm = 0;

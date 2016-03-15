@@ -28,7 +28,7 @@ namespace snemo {
 
     // Registration instantiation macro
     DPP_MODULE_REGISTRATION_IMPLEMENT(process_report_module,
-                                      "snemo::processing::process_report_module");
+                                      "snemo::processing::process_report_module")
 
     void process_report_module::_set_defaults()
     {

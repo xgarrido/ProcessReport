@@ -78,7 +78,7 @@ namespace snemo {
       boost::scoped_ptr<snemo::processing::geometry_report_driver> _GRD_; //!< Geometry report driver
 
       // Macro to automate the registration of the module :
-      DPP_MODULE_REGISTRATION_INTERFACE(process_report_module);
+      DPP_MODULE_REGISTRATION_INTERFACE(process_report_module)
 
     };
 
